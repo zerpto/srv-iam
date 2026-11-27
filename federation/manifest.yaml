@@ -1,0 +1,93 @@
+# The manifest of the iam extension, the only copy. app/manifest.yaml/route.ts serves it at
+# /manifest.yaml after filling the placeholders of `frontend` (remote, expose and shared), and IAM
+# fetches it from there. The service also compiles this file in, without those three and `mode`, so
+# its permissions exist while this app is not running: keep every other value written out here.
+# `menu` holds the sidebar's top-level entries (no group or permission: every signed-in user sees
+# them). The groups of both menus are the core's own and live in ../service/src/models/menu.rs.
+key: iam
+name: Identity and access
+description: Users, companies, roles, permissions and extensions.
+version: 0.1.0
+core_api: "^1"
+requires:
+  services: []
+  grpc: []
+  topics: []
+  permissions: []
+backend:
+  publishes: []
+  permissions:
+    - { key: iam.tenant.read, kind: read, minimum_plan: free, description: "View the workspace's information." }
+    - { key: iam.tenant.manage, kind: write, minimum_plan: free, description: "Update the workspace's basic information." }
+    - { key: iam.users.read, kind: read, minimum_plan: free, description: "View the company's users." }
+    - { key: iam.users.manage, kind: write, minimum_plan: free, description: "Invite, deactivate and change users and their access." }
+    - { key: iam.roles.read, kind: read, minimum_plan: free, description: "View roles and the permission catalogue." }
+    - { key: iam.roles.manage, kind: write, minimum_plan: free, description: "Create, change and delete custom roles." }
+    - { key: iam.extensions.manage, kind: write, minimum_plan: free, description: "Enable and disable the company's extensions." }
+    - { key: iam.approval-rules.read, kind: read, minimum_plan: free, description: "View approval rules." }
+    - { key: iam.api-keys.read, kind: read, minimum_plan: free, description: "View API keys." }
+frontend:
+  mode: module-federation
+  remote: ${remote}
+  expose: ${expose}
+  shared: ${shared}
+  # menu:
+  #   - key: iam.dashboard
+  #     order: 10
+  #     icon: home
+  #     label: { en: Dashboard, id: Dasbor }
+  #     route: /dashboard
+  #   - key: iam.approvals
+  #     order: 20
+  #     icon: check-badge
+  #     label: { en: Approvals, id: Persetujuan }
+  #     route: /approvals
+  #     badge: approvals
+  #   - key: iam.reports
+  #     order: 600
+  #     icon: chart-bar
+  #     label: { en: Reports, id: Laporan }
+  #     route: /reports
+  settings_menu:
+    - key: iam.workspace
+      group: organization
+      order: 10
+      icon: building-office-2
+      label: { en: Workspace, id: Workspace }
+      route: /settings/workspace
+      permission: iam.tenant.read
+    - key: iam.team
+      group: organization
+      order: 20
+      icon: user-group
+      label: { en: Team, id: Tim }
+      route: /settings/team
+      permission: iam.users.read
+    - key: iam.roles
+      group: organization
+      order: 30
+      icon: shield-check
+      label: { en: Roles, id: Peran }
+      route: /settings/roles
+      permission: iam.roles.read
+    # - key: iam.approval-rules
+    #   group: organization
+    #   order: 40
+    #   icon: scale
+    #   label: { en: Approval rules, id: Aturan persetujuan }
+    #   route: /settings/approvals
+    #   permission: iam.approval-rules.read
+    - key: iam.extensions
+      group: developers
+      order: 10
+      icon: puzzle-piece
+      label: { en: Extensions, id: Ekstensi }
+      route: /settings/extensions
+      permission: iam.extensions.manage
+    # - key: iam.api-keys
+    #   group: developers
+    #   order: 20
+    #   icon: key
+    #   label: { en: API keys, id: Kunci API }
+    #   route: /settings/api-keys
+    #   permission: iam.api-keys.read

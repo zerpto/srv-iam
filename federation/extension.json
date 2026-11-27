@@ -1,0 +1,5 @@
+{
+  "key": "iam",
+  "route": "/settings",
+  "port": 3001
+}

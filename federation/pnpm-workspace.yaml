@@ -1,0 +1,8 @@
+# This directory is its own pnpm root. pnpm blocks dependency build scripts; decide per package
+# under `allowBuilds` (`pnpm approve-builds`).
+packages: []
+allowBuilds:
+  # Installed from git, where `dist/` is not committed: its `prepare` script builds it.
+  "@zerpto/sdk": true
+  # Next's image optimizer; this app serves no images.
+  sharp: false

@@ -1,0 +1,5 @@
+# Each project has its own .gitignore; this guards the root.
+.env
+.env.local
+target/
+.DS_Store

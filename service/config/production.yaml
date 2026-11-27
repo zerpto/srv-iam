@@ -1,0 +1,191 @@
+# Loco configuration file documentation
+#
+# This is the production environment. It differs from development in one
+# deliberate way: anything that is a secret or an address takes no default.
+# `get_env(name="X")` with no `default` fails at startup if `X` is unset, which
+# is what you want — a production app that silently falls back to a development
+# secret or a localhost database is worse than one that refuses to boot.
+#
+# The variables this file requires:
+#   DATABASE_URL, JWT_SECRET, HOST, REDIS_URL, NATS_URL.
+
+
+# Application logging configuration
+logger:
+  # Enable or disable logging.
+  enable: true
+  # Enable pretty backtrace (sets RUST_BACKTRACE=1). Off in production: it
+  # costs performance and puts source paths into your logs.
+  pretty_backtrace: false
+  # Log level, options: trace, debug, info, warn or error.
+  level: <%= get_env(name="LOG_LEVEL", default="info") %>
+  # Define the logging format. options: compact, pretty or json
+  # `json` is the machine-readable one, for a log aggregator.
+  format: json
+  # By default the logger has filtering only logs that came from your code or logs that came from `loco` framework. to see all third party libraries
+  # Uncomment the line below to override to see all third party libraries you can enable this config and override the logger filters.
+  # override_filter: trace
+
+# Scheduled jobs, run by `cargo loco scheduler` (a separate process from the
+# web server). Each job runs a registered task (`App::register_tasks`). Cron
+# fields are: second minute hour day month weekday. Add a service's own jobs
+# below; delete the block if the service has none.
+scheduler:
+  jobs:
+    outbox_cleanup:
+      run: "outbox:cleanup days:7"
+      schedule: "0 0 3 * * *"
+      tags: ["maintenance"]
+
+# Web server configuration
+server:
+  # Port on which the server will listen. the server binding is 0.0.0.0:{PORT}
+  port: <%= get_env(name="PORT", default="4001") %>
+  # Binding for the server (which interface to bind to).
+  # `0.0.0.0`, not `localhost`: inside a container or a VM, a server bound to
+  # loopback is unreachable from outside it.
+  binding: <%= get_env(name="BINDING", default="0.0.0.0") %>
+  # The UI hostname or IP address that mailers will point to.
+  # Required: links in outgoing mail have to name the real host.
+  host: <%= get_env(name="HOST") %>
+  # Out of the box middleware configuration. to disable middleware you can changed the `enable` field to `false` of comment the middleware block
+  middlewares:
+    fallback:
+      enable: false
+    # Lets the web app call the API from the browser. The origin must match the
+    # page's origin exactly (scheme + host + port, no path or trailing slash).
+    cors:
+      enable: true
+      allow_origins: ["<%= get_env(name="WEB_APP_URL") %>"]
+      allow_headers: ["authorization", "content-type", "idempotency-key"]
+      allow_methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+      expose_headers: ["x-request-id"]
+      max_age: 3600
+
+# Worker Configuration
+workers:
+  # specifies the worker mode. Options:
+  #   - BackgroundQueue - Workers operate asynchronously in the background, processing queued.
+  #   - ForegroundBlocking - Workers operate in the foreground and block until tasks are completed.
+  #   - BackgroundAsync - Workers operate asynchronously in the background, processing tasks with async capabilities.
+  mode: BackgroundQueue
+
+  
+
+# Shared cache (idempotency keys). Redis, so every instance of the service
+# sees the same keys.
+cache:
+  kind: Redis
+  uri: <%= get_env(name="REDIS_URL") %>
+  max_size: <%= get_env(name="REDIS_POOL_SIZE", default="10") %>
+
+# Queue backend for `BackgroundQueue` workers. Every service has its own Redis
+# (or its own database number) so queues never mix.
+queue:
+  kind: Redis
+  uri: <%= get_env(name="REDIS_URL") %>
+  dangerously_flush: false
+
+# Initializers Configuration
+# initializers:
+#  oauth2:
+#    authorization_code: # Authorization code grant type
+#      - client_identifier: google # Identifier for the OAuth2 provider. Replace 'google' with your provider's name if different, must be unique within the oauth2 config.
+#        ... other fields
+
+# Database Configuration
+database:
+  # Database connection URI. Required — there is no safe default for a
+  # production database.
+  uri: <%= get_env(name="DATABASE_URL") %>
+  # When enabled, the sql query will be logged.
+  enable_logging: <%= get_env(name="DB_LOGGING", default="false") %>
+  # Set the timeout duration when acquiring a connection.
+  connect_timeout: <%= get_env(name="DB_CONNECT_TIMEOUT", default="500") %>
+  # Set the idle duration before closing a connection.
+  idle_timeout: <%= get_env(name="DB_IDLE_TIMEOUT", default="500") %>
+  # Minimum number of connections for a pool.
+  min_connections: <%= get_env(name="DB_MIN_CONNECTIONS", default="1") %>
+  # Maximum number of connections for a pool. Serving real traffic on the
+  # development default of 1 serializes every request behind one connection.
+  max_connections: <%= get_env(name="DB_MAX_CONNECTIONS", default="10") %>
+  # Run migration up when application loaded.
+  # Convenient for single-instance deploys. Turn it off if you run more than
+  # one instance or migrate as a separate release step, so instances do not
+  # race to migrate the same database.
+  auto_migrate: <%= get_env(name="DB_AUTO_MIGRATE", default="true") %>
+  # Truncate database when application loaded. This is a dangerous operation, make sure that you using this flag only on dev environments or test mode
+  dangerously_truncate: false
+  # Recreating schema when application loaded.  This is a dangerous operation, make sure that you using this flag only on dev environments or test mode
+  dangerously_recreate: false
+
+# Authentication Configuration. Services only validate tokens; every service
+# must use the same secret as the service that issues them.
+auth:
+  # JWT authentication
+  jwt:
+    # Secret key for token generation and verification. Required: a secret
+    # committed to the repository is a secret your users can forge tokens with.
+    secret: <%= get_env(name="JWT_SECRET") %>
+    # Token expiration time in seconds
+    expiration: 604800 # 7 days
+
+# App-specific settings, read with `Settings::load(ctx)`.
+settings:
+  # This service's name. Names its event stream and subjects.
+  service: <%= get_env(name="SERVICE_NAME", default="iam") %>
+  # The web app that email links and `web_urls` point to.
+  web_app_url: <%= get_env(name="WEB_APP_URL") %>
+  # The reference-data service, asked to check a tenant's address.
+  reference_data_url: "<%= get_env(name="REFERENCE_DATA_GRPC_URL") %>"
+  # Google sign-in: the OAuth client ID(s), comma-separated. Empty refuses every
+  # Google sign-in.
+  google:
+    client_id: <%= get_env(name="GOOGLE_CLIENT_ID", default="") %>
+  # The extension registry: the platform operator's key, and the internal hosts
+  # a manifest may be fetched from over plain HTTP (comma-separated).
+  extensions:
+    platform_key: "<%= get_env(name="PLATFORM_API_KEY", default="") %>"
+    allowed_hosts: "<%= get_env(name="EXTENSION_ALLOWED_HOSTS", default="") %>"
+    # Where each core extension serves its federation/manifest.yaml. Stored as
+    # its manifest_url. Required.
+    core_manifest_urls:
+      iam: "<%= get_env(name="IAM_MANIFEST_URL") %>"
+      reference-data: "<%= get_env(name="REFERENCE_DATA_MANIFEST_URL") %>"
+      relay: "<%= get_env(name="RELAY_MANIFEST_URL") %>"
+      # Optional: empty leaves billing out.
+      billing: "<%= get_env(name="BILLING_MANIFEST_URL", default="") %>"
+  # Phone verification codes (sent through the relay service).
+  phone:
+    code_ttl_minutes: 5
+    max_attempts: 5
+    max_sends_per_hour: 5
+  # gRPC server that other services call.
+  grpc:
+    enabled: true
+    binding: <%= get_env(name="GRPC_BINDING", default="0.0.0.0") %>
+    port: <%= get_env(name="GRPC_PORT", default="5001") %>
+  # Event streaming over NATS JetStream.
+  events:
+    enabled: <%= get_env(name="EVENTS_ENABLED", default="true") %>
+    nats_url: <%= get_env(name="NATS_URL") %>
+    relay_interval_ms: 500
+  # Error reporting. Leave the DSN empty to turn it off.
+  sentry:
+    dsn: <%= get_env(name="SENTRY_DSN", default="") %>
+    traces_sample_rate: <%= get_env(name="SENTRY_TRACES_SAMPLE_RATE", default="0.0") %>
+  # Uploaded files, in Cloudflare R2.
+  storage:
+    driver: r2
+    r2_bucket: <%= get_env(name="R2_BUCKET") %>
+    r2_endpoint: <%= get_env(name="R2_ENDPOINT") %>
+    r2_access_key_id: <%= get_env(name="R2_ACCESS_KEY_ID") %>
+    r2_secret_access_key: <%= get_env(name="R2_SECRET_ACCESS_KEY") %>
+  # The address clients reach this service at, for file download links.
+  api_url: <%= get_env(name="API_URL") %>
+  # The relay service's Redis queue.
+  relay:
+    enabled: <%= get_env(name="RELAY_ENABLED", default="true") %>
+    redis_url: <%= get_env(name="RELAY_REDIS_URL") %>
+    queue: relay
+    worker_class: RelayWorker

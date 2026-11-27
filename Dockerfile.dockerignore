@@ -1,0 +1,48 @@
+# Used by `docker build .` from the repository root (BuildKit picks the file named after the
+# Dockerfile). Paths are relative to that root.
+#
+# An allow list: everything is left out, then what the build needs is added back. srv.core,
+# contract.proto, web.ui and web.sdk are downloaded from GitHub during the build, so they are not listed.
+**
+
+# Backend
+!service/Cargo.toml
+!service/Cargo.lock
+!service/src
+!service/migration
+!service/proto
+!service/config/production.yaml
+
+# Frontend
+!federation/package.json
+!federation/pnpm-lock.yaml
+!federation/pnpm-workspace.yaml
+!federation/extension.json
+!federation/manifest.yaml
+!federation/next.config.ts
+!federation/proxy.ts
+!federation/rsbuild.config.ts
+!federation/tsconfig*.json
+!federation/app
+!federation/lib
+!federation/public
+!federation/remote
+
+# Container scripts
+!docker
+
+# Never, even inside an allowed directory. Keep these last.
+**/.env
+**/.env.*
+**/target
+**/node_modules
+**/.next
+**/dist
+**/dist-standalone
+**/public/mf
+**/config/local.yaml
+**/config/*.local.yaml
+**/*.tsbuildinfo
+**/next-env.d.ts
+**/*.log
+**/.DS_Store

@@ -1,0 +1,13 @@
+/* Scoped to this extension, without preflight; see "Extension setup" in web.ui/README.md. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" theme(reference);
+@import "@zerpto/ui/remote.css";
+
+@source "./";
+
+@layer utilities {
+  /* rsbuild.config.ts writes the key from extension.json here. */
+  [data-zerpto-ext="__EXTENSION_KEY__"] {
+    @tailwind utilities source(none);
+  }
+}

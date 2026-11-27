@@ -1,0 +1,10 @@
+node_modules/
+.next/
+# Rsbuild output (the federated UI), served by Next.js.
+public/mf/
+next-env.d.ts
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.DS_Store
